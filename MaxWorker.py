@@ -152,15 +152,20 @@ class MaxWorker(multiprocessing.Process):
             self.logger.error("problem while udating param %s in device %s" % (param, device_id))
 
     def prepare_output(self, device_id, param_name, param_value):
+        try:
+          return_device = self.topology[device_id]['room_name'] + '/' + self.topology[device_id]['name']
+        except Exception as e:
+          return_device = device_id
         out = {
             'method': 'publish',
-            'deviceId': device_id,
+            'deviceId': deviceIdR,
             'param': param_name,
             'payload': param_value,
             'qos': 1,
             'timestamp': time.time()
         }
         return out
+
 
     def connect(self):
         if self.__max_cube_connection is None:
