@@ -8,7 +8,8 @@ from maxcube.cube import MaxCube
 from maxcube.device import \
     MAX_THERMOSTAT, \
     MAX_THERMOSTAT_PLUS, \
-    MAX_WALL_THERMOSTAT
+    MAX_WALL_THERMOSTAT, \
+    MAX_WINDOW_SHUTTER
 
 
 class MaxWorker(multiprocessing.Process):
@@ -64,7 +65,7 @@ class MaxWorker(multiprocessing.Process):
             # self.__messageQ.put(self.prepare_output('cube', 'duty_cycle', cube.duty_cycle))
             for device in cube.devices:
                 device_id = self.update_device(device)
-                if device.type in (MAX_THERMOSTAT, MAX_THERMOSTAT_PLUS, MAX_WALL_THERMOSTAT) \
+                if device.type in (MAX_THERMOSTAT, MAX_THERMOSTAT_PLUS, MAX_WALL_THERMOSTAT )\
                         and self.enable_sanity_check \
                         and (device_id in self.desired_temperatures) \
                         and (self.desired_temperatures[device_id] != device.target_temperature):
@@ -117,21 +118,30 @@ class MaxWorker(multiprocessing.Process):
             self.update_device_metric(device, 'target_temperature')
             self.update_device_metric(device, 'valve_position')
 
+        # get status of window
+        if device.type == MAX_WINDOW_SHUTTER:
+           self.topology[device_id]['mode'] = device.mode;
+
         # send data to MQTT
         self.logger.debug("Refreshing data in MQTT for device :%s (%s/%s)" %
                           (device_id, device.room_name, device.name))
+
         self.__messageQ.put(self.prepare_output(
-            device_id, 'actual_temperature', self.topology[device_id].get('actual_temperature', None)))
+                device_id, 'LinkFail', self.topology[device_id]['link_ok']))
         self.__messageQ.put(self.prepare_output(
-            device_id, 'target_temperature', self.topology[device_id]['target_temperature']))
+            device_id, 'BatteryOK', self.topology[device_id]['battery_ok']))        
         self.__messageQ.put(self.prepare_output(
-            device_id, 'link_ok', self.topology[device_id]['link_ok']))
-        self.__messageQ.put(self.prepare_output(
-            device_id, 'battery_ok', self.topology[device_id]['battery_ok']))
-        self.__messageQ.put(self.prepare_output(
-            device_id, 'valve_position', self.topology[device_id]['valve_position']))
-        self.__messageQ.put(self.prepare_output(
-            device_id, 'mode', self.topology[device_id]['mode']))
+                device_id, 'Mode', self.topology[device_id]['mode']))
+
+        if device.type in (MAX_THERMOSTAT, MAX_THERMOSTAT_PLUS, MAX_WALL_THERMOSTAT):
+            self.__messageQ.put(self.prepare_output(
+                device_id, 'ActualTemperature', self.topology[device_id].get('actual_temperature', None)))
+            self.__messageQ.put(self.prepare_output(
+                device_id, 'TargetTemperature', self.topology[device_id]['target_temperature']))
+            self.__messageQ.put(self.prepare_output(
+                device_id, 'ValvePosition', self.topology[device_id]['valve_position']))
+            
+
         return device_id
 
     def dump_topology(self):
@@ -153,9 +163,9 @@ class MaxWorker(multiprocessing.Process):
 
     def prepare_output(self, device_id, param_name, param_value):
         try:
-          return_device = self.topology[device_id]['room_name'] + '/' + self.topology[device_id]['name']
+          deviceIdR = self.topology[device_id]['room_name'] + '/' + self.topology[device_id]['name']
         except Exception as e:
-          return_device = device_id
+          deviceIdR = device_id
         out = {
             'method': 'publish',
             'deviceId': deviceIdR,
@@ -165,7 +175,6 @@ class MaxWorker(multiprocessing.Process):
             'timestamp': time.time()
         }
         return out
-
 
     def connect(self):
         if self.__max_cube_connection is None:
@@ -187,6 +196,8 @@ class MaxWorker(multiprocessing.Process):
     def set_temperature(self, cube, device_id, target_temperature):
         device = self.topology[device_id]
         self.desired_temperatures[device_id] = float(target_temperature)
+	if device['type'] == 4:
+           return;
         if float(device['target_temperature']) != float(target_temperature):
             rf_id = device['rf_address']
             try:
@@ -246,7 +257,7 @@ class MaxWorker(multiprocessing.Process):
                 self.cube_duty_cycle = 0
                 self.cube_duty_cycle_reset = time.time()
                 self.__messageQ.put(self.prepare_output(
-                    'cube', 'duty_cycle', self.cube_duty_cycle))
+                    'Cube', 'DutyCycle', self.cube_duty_cycle))
 
             # processing incoming data
             if not self.__commandQ.empty():

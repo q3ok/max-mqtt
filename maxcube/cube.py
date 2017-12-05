@@ -9,7 +9,8 @@ from maxcube.device import \
     MAX_THERMOSTAT_PLUS, \
     MAX_WALL_THERMOSTAT, \
     MAX_DEVICE_MODE_AUTOMATIC, \
-    MAX_DEVICE_MODE_MANUAL
+    MAX_DEVICE_MODE_MANUAL, \
+    MAX_WINDOW_SHUTTER
 from maxcube.thermostat import MaxThermostat
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ class MaxCube(MaxDevice):
             device = self.device_by_rf(device_rf_address)
 
             if not device:
-                if device_type == MAX_THERMOSTAT or device_type == MAX_THERMOSTAT_PLUS or device_type == MAX_WALL_THERMOSTAT:
+                if device_type in ( MAX_THERMOSTAT, MAX_THERMOSTAT_PLUS, MAX_WALL_THERMOSTAT, MAX_WINDOW_SHUTTER):
                     device = MaxThermostat()
 
                 if device:
@@ -160,16 +161,16 @@ class MaxCube(MaxDevice):
 
             device = self.device_by_rf(device_rf_address)
 
-            if device and self.is_thermostat(device):
-                device.rf_address = device_rf_address
-                bits1, bits2 = struct.unpack('BB', bytearray(data[pos + 4:pos + 6]))
+            device.rf_address = device_rf_address
+            bits1, bits2 = struct.unpack('BB', bytearray(data[pos + 4:pos + 6]))
 
-                submessage_len, rf1, rf2, rf3, unknown, flags1, flags2 = struct.unpack('B3BBBB', bytearray(data[:7]))
-                device.link_ok = bool(flags2 & 0x07)
-                device.battery_ok = bool(flags2 & 0x08)
+            submessage_len, rf1, rf2, rf3, unknown, flags1, flags2 = struct.unpack('B3BBBB', bytearray(data[:7]))
+            device.link_ok = bool(flags2 & 0x07)
+            device.battery_ok = bool(flags2 & 0x08)
 
-                device.mode = self.resolve_device_mode(bits2)
-
+            device.mode = self.resolve_device_mode(bits2)
+            
+            if device and self.is_thermostat(device) and device.type in (MAX_THERMOSTAT, MAX_THERMOSTAT_PLUS, MAX_WALL_THERMOSTAT):
                 actual_temperature = None
                 if device.type == MAX_WALL_THERMOSTAT:
                     actual_temperature = ((data[pos + 11] & 0xFF) + (data[pos + 7] & 0x80) * 2) / 10.0
@@ -178,7 +179,7 @@ class MaxCube(MaxDevice):
                     if device.mode == MAX_DEVICE_MODE_MANUAL or device.mode == MAX_DEVICE_MODE_AUTOMATIC:
                         actual_temperature = ((data[pos + 8] & 0xFF) * 256 + (data[pos + 9] & 0xFF)) / 10.0
                 if actual_temperature != 0:
-                    device.actual_temperature = actual_temperature
+                   device.actual_temperature = actual_temperature
                 device.target_temperature = (data[pos + 7] & 0x7F) / 2.0
             pos += length
 

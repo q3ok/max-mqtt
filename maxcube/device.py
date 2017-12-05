@@ -10,6 +10,9 @@ MAX_DEVICE_MODE_MANUAL = 1
 MAX_DEVICE_MODE_VACATION = 2
 MAX_DEVICE_MODE_BOOST = 3
 
+MAX_WINDOW_OPEN = 1
+MAX_WINDOW_CLOSED = 0
+
 
 class MaxDevice(object):
     def __init__(self):
