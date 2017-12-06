@@ -7,9 +7,9 @@ class MaxThermostat(MaxDevice):
         self.mode = None
         self.min_temperature = None
         self.max_temperature = None
-        self.actual_temperature = None
-        self.target_temperature = None
-        self.valve_position = None
+        self.ActualTemperature = None
+        self.TargetTemperature = None
+        self.ValvePosition = None
 
     def device_mode_name(self):
         device_mode_names = (

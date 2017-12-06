@@ -20,8 +20,8 @@ class MaxDevice(object):
         self.rf_address = None
         self.room_id = None
         self.name = None
-        self.battery_ok = None
-        self.link_ok = None
+        self.BatteryOK = None
+        self.LinkFail = None
         self.room_name = None
 
     def device_type_name(self):

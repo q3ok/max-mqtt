@@ -43,8 +43,8 @@ class MaxCube(MaxDevice):
                 logger.info(
                     'Thermostat (type=%s, rf=%s, room=%s, name=%s, mode=%s, min=%s, max=%s, actual=%s, target=%s)'
                     % (device.type, device.rf_address, device.room_id, device.name, device.mode, device.min_temperature,
-                       device.max_temperature, device.actual_temperature,
-                       device.target_temperature))
+                       device.max_temperature, device.ActualTemperature,
+                       device.TargetTemperature))
             else:
                 logger.info('Device (rf=%s, name=%s' % (device.rf_address, device.name))
 
@@ -165,33 +165,33 @@ class MaxCube(MaxDevice):
             bits1, bits2 = struct.unpack('BB', bytearray(data[pos + 4:pos + 6]))
 
             submessage_len, rf1, rf2, rf3, unknown, flags1, flags2 = struct.unpack('B3BBBB', bytearray(data[:7]))
-            device.link_ok = bool(flags2 & 0x07)
-            device.battery_ok = bool(flags2 & 0x08)
+            device.LinkFail = bool(flags2 & 0x07)
+            device.BatteryOK = bool(flags2 & 0x08)
 
             device.mode = self.resolve_device_mode(bits2)
             
             if device and self.is_thermostat(device) and device.type in (MAX_THERMOSTAT, MAX_THERMOSTAT_PLUS, MAX_WALL_THERMOSTAT):
-                actual_temperature = None
+                ActualTemperature = None
                 if device.type == MAX_WALL_THERMOSTAT:
-                    actual_temperature = ((data[pos + 11] & 0xFF) + (data[pos + 7] & 0x80) * 2) / 10.0
+                    ActualTemperature = ((data[pos + 11] & 0xFF) + (data[pos + 7] & 0x80) * 2) / 10.0
                 else:
-                    device.valve_position = data[pos + 6] & 0xFF
+                    device.ValvePosition = data[pos + 6] & 0xFF
                     if device.mode == MAX_DEVICE_MODE_MANUAL or device.mode == MAX_DEVICE_MODE_AUTOMATIC:
-                        actual_temperature = ((data[pos + 8] & 0xFF) * 256 + (data[pos + 9] & 0xFF)) / 10.0
-                if actual_temperature != 0:
-                   device.actual_temperature = actual_temperature
-                device.target_temperature = (data[pos + 7] & 0x7F) / 2.0
+                        ActualTemperature = ((data[pos + 8] & 0xFF) * 256 + (data[pos + 9] & 0xFF)) / 10.0
+                if ActualTemperature != 0:
+                   device.ActualTemperature = ActualTemperature
+                device.TargetTemperature = (data[pos + 7] & 0x7F) / 2.0
             pos += length
 
-    def set_target_temperature(self, thermostat, temperature):
+    def set_TargetTemperature(self, thermostat, temperature):
         logger.debug('Setting temperature for %s to %s!' % (thermostat.rf_address, temperature))
         rf_address = thermostat.rf_address
         room = str(thermostat.room_id)
         if thermostat.room_id < 10:
             room = '0' + room
-        target_temperature = int(temperature * 2) + (thermostat.mode << 6)
+        TargetTemperature = int(temperature * 2) + (thermostat.mode << 6)
 
-        byte_cmd = '000440000000' + rf_address + room + hex(target_temperature)[2:]
+        byte_cmd = '000440000000' + rf_address + room + hex(TargetTemperature)[2:]
         logger.debug('Request: ' + byte_cmd)
         command = 's:' + base64.b64encode(bytearray.fromhex(byte_cmd)).decode('utf-8') + '\r\n'
         logger.debug('Command: ' + command)
@@ -208,7 +208,7 @@ class MaxCube(MaxDevice):
         self.command_success = self.command_result == 0
 
         self.connection.disconnect()
-        thermostat.target_temperature = int(temperature * 2) / 2.0
+        thermostat.TargetTemperature = int(temperature * 2) / 2.0
 
     def set_mode(self, thermostat, mode):
         mode = int(mode)
@@ -217,8 +217,8 @@ class MaxCube(MaxDevice):
         room = str(thermostat.room_id)
         if thermostat.room_id < 10:
             room = '0' + room
-        target_temperature = int(thermostat.target_temperature * 2) + (mode << 6)
-        byte_cmd = '000440000000' + rf_address + room + hex(target_temperature)[2:]
+        TargetTemperature = int(thermostat.TargetTemperature * 2) + (mode << 6)
+        byte_cmd = '000440000000' + rf_address + room + hex(TargetTemperature)[2:]
         logger.debug('Request: ' + byte_cmd)
         command = 's:' + base64.b64encode(bytearray.fromhex(byte_cmd)).decode('utf-8') + '\r\n'
         logger.debug('Command: ' + command)

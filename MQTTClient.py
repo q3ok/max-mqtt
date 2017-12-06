@@ -47,8 +47,9 @@ class MQTTClient(multiprocessing.Process):
         data_out = {
             'method': 'command',
             'topic': message.topic,
-            'deviceId': data[0],
-            'param': data[1],
+            'roomName': data[0],
+            'deviceName': data[1],
+            'param': data[2],
             'payload': message.payload.decode('ascii'),
             'qos': 1,
             'timestamp': time.time()
@@ -70,7 +71,7 @@ class MQTTClient(multiprocessing.Process):
                 self.messageQ.put(task)
 
     def run(self):
-        self._mqttConn.subscribe(self.mqttDataPrefix + "/+/+/set")
+        self._mqttConn.subscribe(self.mqttDataPrefix + "/+/+/+/set") # prefix/[RoomName]/[DeviceName]/[ParamName]/set [value]
         while True:
             while not self.messageQ.empty():
                 task = self.messageQ.get()

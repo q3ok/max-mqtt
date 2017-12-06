@@ -2,31 +2,47 @@
 
 Project delivers MQTT gateway for [EQ-3 Max!](https://max.eq-3.de/login.jsp) heating control system.
 
-##Output data
+## Supported Max! components:
+- LAN Gateway
+- wall thermostat
+- radiator thermostat (thermostatic head)
+- window shutter
+
+## Output data
 Application pushes informations to MQTT broker in following format:
 [mqtt_prefix]/[room_name]/[device_name]/[parameter]
 
-##Input data
-Every change should be published to topic: (NOT TESTED IN THIS FORK)!
-[mqtt_prefix]/[device_serial_number]/[parameter]/set (currently is supported only *target_temperature*)
+Where parameter can be (depends on device type):
+### Every device
+LinkFail -> True/False
+BatteryOK -> True/False
+Mode -> value depends on device type
+### Thermostatic head / Radiator thermostat
+Mode -> AUTO/BOOST/MANUAL/VACATION
+ActualTemperature -> float current temperature
+TargetTemperature -> float requested temperature
+ValvePosition -> int percent of valve open
+### Window shutter
+Mode -> 0 - closed, 2 - open
 
-##Supported Max! components:
-- LAN Gateway
-- wall thermostat
-- radiator thermostat
-- window shutter
+## Input data
+Change request must be published to this topic:
+[mqtt_prefix]/[room_name]/[device_name]/[parameter]/set
 
+Where parameter:
+- Mode -> can be AUTO/BOOST/MANUAL/VACATION
+- TargetTemperature -> float temperature (degree celsius)
 
-##Current features:
-- reporting parameters:
+## Current features:
+- reporting parameters from components:
     - mode
     - target temperature
     - actual temperature
     - valve position (for thermostats)
     - battery and link status
-    - duty cycle (and free memory slots for cube -> its not)
+    - duty cycle and free memory slots for cube
+- setting target temperature
 - maintaning set temperature (sometimes system behaves strangely, and set temperatures on its own, application can reset it to default values)
-
 
 ## Configuration
 
@@ -56,7 +72,7 @@ config param | meaning
 | max_topology_refresh_interval | Interval of refreshing data from Max! system |
 | max_mqtt_update_interval | Interval of refreshing parameters (even if they not change) in MQTT. In the same time topology of your Max! network is dumped to file topology.json and sanity check is performed.  |
 | max_cube_duty_cycle_reset_interval | Time after duty_cycle counter is reset (since last operation)|
-| max_perform_sanity_check | Enabling sanity check 
+| max_perform_sanity_check | Enabling sanity check |
 
 ##References
 - MaxCube library (little modified) https://github.com/goodfield/python-maxcube-api
