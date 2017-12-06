@@ -10,38 +10,51 @@ Project delivers MQTT gateway for [EQ-3 Max!](https://max.eq-3.de/login.jsp) hea
 
 ## Output data
 Application pushes informations to MQTT broker in following format:
+```
 [mqtt_prefix]/[room_name]/[device_name]/[parameter]
+```
 
 Where parameter can be (depends on device type):
 ### Every device
+```
 LinkFail -> True/False
 BatteryOK -> True/False
 Mode -> value depends on device type
+```
 ### Thermostatic head / Radiator thermostat
+```
 Mode -> AUTO/BOOST/MANUAL/VACATION
 ActualTemperature -> float current temperature
 TargetTemperature -> float requested temperature
 ValvePosition -> int percent of valve open
+```
 ### Window shutter
+```
 Mode -> 0 - closed, 2 - open
+```
 
 ## Input data
 Change request must be published to this topic:
+```
 [mqtt_prefix]/[room_name]/[device_name]/[parameter]/set
+```
 
 Where parameter:
+```
 - Mode -> can be AUTO/BOOST/MANUAL/VACATION
 - TargetTemperature -> float temperature (degree celsius)
+```
 
 ## Current features:
 - reporting parameters from components:
     - mode
     - target temperature
-    - actual temperature
+    - actual temperature (if known)
     - valve position (for thermostats)
     - battery and link status
     - duty cycle and free memory slots for cube
 - setting target temperature
+- setting thermostatic head mode
 - maintaning set temperature (sometimes system behaves strangely, and set temperatures on its own, application can reset it to default values)
 
 ## Configuration
